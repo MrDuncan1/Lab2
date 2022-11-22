@@ -23,8 +23,9 @@ y = 560
 x = 400
 phase = 0
 
+
 class Ball:
-    def __init__(self, screen: pygame.Surface):
+    def __init__(self, screen: pygame.Surface, x, y):
         """ Конструктор класса ball
 
         Args:
@@ -97,6 +98,23 @@ class Gun:
         self.f2_on = 0
         self.an = 1
         self.color = GREY
+        self.w = 0
+        self.x = 400
+        self.y = 300
+        self.phi = 0
+
+    def move(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_RIGHT]:
+            self.w = 1/50
+        elif keys[pygame.K_LEFT]:
+            self.w = -1/50
+        else:
+            self.w = 0
+
+        self.phi += self.w
+        self.x = 400 + 200 * math.sin(self.phi)
+        self.y = 300 - 200 * math.cos(self.phi)
 
     def fire2_start(self, event):
         self.f2_on = 1
@@ -108,7 +126,7 @@ class Gun:
         """
         global balls, bullet
         bullet += 1
-        new_ball = Ball(self.screen)
+        new_ball = Ball(self.screen, self.x, self.y)
         new_ball.r += 5
         self.an = math.atan2((event.pos[1] - new_ball.y), (event.pos[0] - new_ball.x))
         new_ball.vx = self.f2_power * math.cos(self.an)
@@ -120,8 +138,8 @@ class Gun:
     def targetting(self, event):
         """Прицеливание. Зависит от положения мыши."""
         if event:
-            if event.pos[0] - x != 0:
-                self.an = math.atan((event.pos[1] - y) / (event.pos[0] - x))
+            if event.pos[0] - self.x != 0:
+                self.an = math.atan((event.pos[1] - self.y) / (event.pos[0] - self.x))
 
         if self.f2_on:
             self.color = RED
@@ -133,18 +151,16 @@ class Gun:
         pass
         """Отрисовка пушки"""
 
-
         pygame.draw.circle(screen, (GREY), (400, 300), 202)
         pygame.draw.circle(screen, (WHITE), (400, 300), 198)
-        pygame.draw.circle(screen, (255 ,255-self.f2_power*2 ,0 ), (x, y), 26)
-        pygame.draw.circle(screen, (0, 0, 0), (x, y), 25)
-        pygame.draw.polygon(screen, (255 ,255-self.f2_power*2 ,0),
-                            ([x - 10 * math.sin(self.an), y + 10 * math.cos(self.an)],
-                             [x - 25 * math.cos(self.an), y - 25 * math.sin(self.an)],
+        pygame.draw.circle(screen, (255, 255 - self.f2_power * 2, 0), (self.x, self.y), 26)
+        pygame.draw.circle(screen, (0, 0, 0), (self.x, self.y), 25)
+        pygame.draw.polygon(screen, (255, 255 - self.f2_power * 2, 0),
+                            ([self.x - 10 * math.sin(self.an), self.y + 10 * math.cos(self.an)],
+                             [self.x - 25 * math.cos(self.an), self.y - 25 * math.sin(self.an)],
 
-                            [x + 10 * math.sin(self.an), y - 10 * math.cos(self.an)],
-                             [x + 25 * math.cos(self.an), y + 25 * math.sin(self.an)],))
-
+                             [self.x + 10 * math.sin(self.an), self.y - 10 * math.cos(self.an)],
+                             [self.x + 25 * math.cos(self.an), self.y + 25 * math.sin(self.an)],))
 
     def power_up(self):
         if self.f2_on:
@@ -185,7 +201,6 @@ class Target:
                            [self.x, self.y], self.r)
 
 
-
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 bullet = 0
@@ -198,6 +213,7 @@ finished = False
 
 while not finished:
     screen.fill(WHITE)
+    gun.move()
     gun.draw()
     target.draw()
     my_font = pygame.font.match_font("Arial")
@@ -209,13 +225,9 @@ while not finished:
         b.draw()
     pygame.display.update()
 
-    
-    phase += 1
-    x = 400 + 200 * math.sin(phase/20)
-    y = 300 + 200 * math.cos(phase / 20)
-
     clock.tick(FPS)
     for event in pygame.event.get():
+
         if event.type == pygame.QUIT:
             finished = True
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -225,7 +237,6 @@ while not finished:
         elif event.type == pygame.MOUSEMOTION:
             gun.targetting(event)
 
-
     for b in balls:
         b.move()
         if b.hittest(target) and target.live:
@@ -234,7 +245,6 @@ while not finished:
         if b.live <= 0:
             balls.remove(b)
     gun.power_up()
-    
-  
+
     pygame.display.update()
 pygame.quit()
